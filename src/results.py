@@ -1,0 +1,26 @@
+import json
+from pathlib import Path
+
+
+def results_table(directory="report/evidence"):
+    rows = []
+    for path in sorted(Path(directory).glob("*.json")):
+        d = json.loads(path.read_text(encoding="utf-8"))
+        m = d.get("meta", {})
+        rows.append({"file": path.name, "split": d["split"], "F1": d["micro"]["f1"],
+                     "CI95": d["f1_ci95"], "FP/image": d["fp_per_image"],
+                     "parse_valid_rate": d["parse_valid_rate"],
+                     **{c: d["per_class"][c]["f1"] for c in ("pothole", "crack", "manhole")},
+                     **{k: m.get(k) for k in ("trainable_params", "peak_vram_gb", "train_minutes")}})
+    return rows
+
+
+def choose_by_val(directory="work/validation"):
+    rows = []
+    for name in ("e1", "e2", "e3"):
+        d = json.loads((Path(directory) / f"{name}.json").read_text(encoding="utf-8"))
+        assert d["split"] == "val" and d["missing_predictions"] == 0
+        rows.append((d["micro"]["f1"], name))
+    best = max(rows, key=lambda r: (r[0], -int(r[1][1])))
+    print("Chọn đối chứng bằng F1 val:", rows, "=>", best[1])
+    return best[1]
