@@ -19,6 +19,27 @@ from .sft import answer_labels, collate_encoded
 
 
 class LightweightTests(unittest.TestCase):
+    def test_backup_latest_only_and_drive_failure_is_nonfatal(self):
+        from .checkpoints import backup_run
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, backup = root / "run", root / "drive"
+            for step in ("step-0100", "step-0200"):
+                folder = source / step
+                folder.mkdir(parents=True)
+                (folder / "complete.json").write_text("{}")
+                (folder / "projector.pt").write_bytes(b"tiny synthetic checkpoint")
+            self.assertTrue(backup_run(source, backup))
+            self.assertFalse((backup / "run/step-0100").exists())
+            self.assertTrue((backup / "run/step-0200/complete.json").is_file())
+            with patch("src.checkpoints.shutil.copy2", side_effect=OSError("synthetic Drive failure")):
+                self.assertFalse(backup_run(source, root / "failed_drive"))
+            self.assertFalse((root / "failed_drive/run/step-0200/complete.json").exists())
+            self.assertTrue((source / "step-0200/projector.pt").is_file())
+            status = json.loads((source / "backup_status.json").read_text(encoding="utf-8"))
+            self.assertFalse(status["ok"])
+            self.assertEqual(status["checkpoint"], "step-0200")
+
     def test_live_log_and_restore_do_not_overwrite_existing_files(self):
         from .colab_workflow import run, restore_from_drive
         previous = Path.cwd()

@@ -1,5 +1,6 @@
 import json
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .config import write_json
@@ -69,9 +70,41 @@ def verify_reload(original, restored, include_projector):
 
 
 def backup_run(source, backup_root):
-    if backup_root:
-        source = Path(source)
-        destination = Path(backup_root) / source.name
-        if destination.resolve() == source.resolve():
-            raise ValueError("Thư mục backup phải khác thư mục chạy.")
-        shutil.copytree(source, destination, dirs_exist_ok=True)
+    if not backup_root:
+        return None
+    source = Path(source)
+    destination = Path(backup_root) / source.name
+    if destination.resolve() == source.resolve():
+        raise ValueError("Thư mục backup phải khác thư mục chạy.")
+    checkpoints = sorted(p for p in source.glob("step-*")
+                         if p.is_dir() and (p / "complete.json").is_file())
+    latest = checkpoints[-1] if checkpoints else None
+    status = {"time_utc": datetime.now(timezone.utc).isoformat(),
+              "destination": str(destination), "checkpoint": latest.name if latest else None}
+    try:
+        destination.mkdir(parents=True, exist_ok=True)
+        # Không chép lại toàn bộ step-0100 khi vừa lưu step-0200.
+        if latest:
+            target = destination / latest.name
+            target.mkdir(parents=True, exist_ok=True)
+            for file in latest.rglob("*"):
+                if file.is_file() and file.name != "complete.json":
+                    copied = target / file.relative_to(latest)
+                    copied.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(file, copied)
+                    if copied.stat().st_size != file.stat().st_size:
+                        raise OSError(f"Backup size mismatch: {copied}")
+            # Marker chỉ được chép sau khi tất cả file checkpoint chép thành công.
+            shutil.copy2(latest / "complete.json", target / "complete.json")
+        for file in source.iterdir():
+            if file.is_file() and file.name != "backup_status.json":
+                shutil.copy2(file, destination / file.name)
+        status["ok"] = True
+        print("BACKUP OK:", destination, status["checkpoint"], flush=True)
+    except (OSError, shutil.Error) as error:
+        status.update(ok=False, error=str(error))
+        print("BACKUP FAILED - training continues with LOCAL checkpoint; back up before resetting:",
+              error, flush=True)
+    # Lỗi Drive không được làm mất cả lượt train đã lưu local.
+    write_json(source / "backup_status.json", status)
+    return status["ok"]

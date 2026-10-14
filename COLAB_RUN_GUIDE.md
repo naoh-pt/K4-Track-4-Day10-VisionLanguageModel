@@ -36,6 +36,8 @@ Gửi đầu tiên: GPU/phiên bản thư viện, thống kê dataset và toàn 
 
 ## Lưu trữ và chạy lại
 
+- Cập nhật sau lỗi Drive ở E3 bước 200: `src/checkpoints.py` chỉ backup checkpoint mới nhất; lỗi copy Drive được ghi `backup_status.json` và cảnh báo `BACKUP FAILED`, train vẫn tiếp tục vì checkpoint local đã lưu. Phải kiểm tra `BACKUP OK` hoặc cứu file riêng trước khi reset runtime; đây không phải resume optimizer. Run E3 200 bước đã được cứu thành ZIP trên Drive, không tính là kết quả 300 bước.
+
 - `/content` sẽ mất khi Colab ngắt. Checkpoint và log được sao lưu vào `MyDrive/day10_vlm/runs` mỗi 100 bước và khi kết thúc; evidence/prediction dùng cell sao lưu riêng cuối notebook, nên chạy cell này sau mỗi setup.
 - Checkpoint hiện hỗ trợ nạp lại để suy luận; chưa lưu optimizer/RNG để resume train chính xác. Nếu train ngắt giữa chừng, giữ log cũ và chạy mới từ model gốc vào thư mục mới; không gọi phần train còn lại là run 300 bước hoàn chỉnh.
 - Lệnh không ghi đè thư mục train hoặc prediction/evidence đã có. Khi cần chạy lại, đổi `TAG` (ví dụ `e2_retry1`) và cập nhật đường dẫn checkpoint/score tương ứng; giữ kết quả cũ để đối chiếu. Với mất session, chép run cần dùng từ Drive về `work/runs/` trước.
