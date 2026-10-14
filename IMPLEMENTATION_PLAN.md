@@ -43,3 +43,12 @@
 - [x] Đã nhận kết quả thật: E0 test F1 0.0509014; E1 val F1 0.2072452; E2 val F1 0.3001715. Không trộn split, không tạo evidence mới từ log thay cho file scorer gốc; REPORT vẫn giữ nguyên.
 - [x] E1/E2 train 300 bước có backup; E3 smoke scale1024 đạt 8 bước, adapter/projector round-trip đúng.
 - [ ] Full E3 (chờ đủ GPU), val E3, test E1–E3, E4, lấy evidence gốc về local và hoàn thiện báo cáo/nộp. Chưa commit/push.
+
+## Trạng thái cuối trước nộp
+
+- [x] Theo quyết định người dùng, giữ E3 checkpoint200 thay vì train lại300 sau lỗi backup Drive. Val/test E3 đã chạy; báo cáo ghi rõ sai khác.
+- [x] E4 data_size 10%/100% tại cùng200 bước, scale1024, LR horizon300; đủ hai evidence thật. 100% tái sử dụng E3, không suy luận lại.
+- [x] Đã nhận evidence test E0–E4, validation E1–E3, dataset_meta, phép chấm sai thang và6 ảnh thật có manifest; REPORT điền bằng số thật.
+- [x] Sửa giải nén report/report thành đúng report/{analysis,evidence,figures,validation}; bản giải nén gốc lưu work/submission_import_original_20261014, không đưa vào Git.
+- [x] Toàn bộ test gốc đã chạy:67 passed,1 skipped,1 failed do test mẫu REPORT yêu cầu marker chưa điền; không sửa tests. Checker UTF-8:0 FAIL,0 WARN. Chi tiết report/analysis/verification.json.
+- [ ] Push các commit và nộp link repo; cần người dùng yêu cầu push. Không tuyên bố đạt đủ300 bước E3/E4.
