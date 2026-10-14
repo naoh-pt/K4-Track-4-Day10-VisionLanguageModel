@@ -1,5 +1,13 @@
 # Lab Day 10: Finetune Qwen3-VL-4B (LoRA) để định vị hư hại mặt đường
 
+## Bài nộp — Phan Trọng Hoàn
+
+Đọc [REPORT.md](REPORT.md) để xem kết quả và giới hạn, [evidence](report/evidence) để đối chiếu JSON scorer, [ảnh minh họa](report/figures/e3_step0200) và [log Colab](report/logs). Code cá nhân nằm trong `src/`; notebook chính là [lab_day10.ipynb](lab_day10.ipynb), hướng dẫn chạy ở [COLAB_RUN_GUIDE.md](COLAB_RUN_GUIDE.md).
+
+E1/E2 train300 bước; **E3/E4 chỉ200 bước**, đã ghi rõ sai khác với cấu hình đề. E0–E4 có evidence thật, không thực hiện E5. Checker không có FAIL; test gốc còn một lỗi do yêu cầu REPORT giữ marker mẫu trái với checker, xem [biên bản kiểm tra](report/analysis/verification.json). Không có dataset, secrets hoặc trọng số trong Git. Các notebook tải về v1/v2 giữ riêng ở local; log trích có ghi nguồn và hash, không coi output cũ là lần chạy lại notebook đã dọn.
+
+Phần dưới là hướng dẫn gốc của bài lab.
+
 > Track 4 · Ngày 10 · *Nhãn, auto-labeling và Vision–Language Model* · **bài cá nhân** · ≈ 4 giờ trên **Google Colab T4 (miễn phí)**
 > Bạn **tự viết** phần huấn luyện và suy luận theo pseudo code trong [`GUIDE.md`](GUIDE.md). Công cụ chia dữ liệu và chấm điểm do giảng viên viết sẵn và **không được sửa**.
 

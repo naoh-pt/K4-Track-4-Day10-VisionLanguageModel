@@ -8,7 +8,7 @@ def main():
     files = []
     for directory, suffix in (("src", ".py"), ("scripts", ".py"), ("tests", ".py"), ("configs", ".yaml")):
         files.extend((root / directory).rglob(f"*{suffix}"))
-    files.extend(p for p in (root / "report").rglob("*") if p.is_file() and p.suffix in {".json", ".png"})
+    files.extend(p for p in (root / "report").rglob("*") if p.is_file() and p.suffix in {".json", ".png", ".txt"})
     files.extend(root / name for name in ("README.md", "GUIDE.md", "RUBRIC.md", "REPORT.md",
                  "IMPLEMENTATION_PLAN.md", "COLAB_RUN_GUIDE.md", "requirements-colab.txt",
                  "pytest.ini", ".gitignore", "lab_day10.ipynb"))

@@ -51,4 +51,5 @@
 - [x] Đã nhận evidence test E0–E4, validation E1–E3, dataset_meta, phép chấm sai thang và6 ảnh thật có manifest; REPORT điền bằng số thật.
 - [x] Sửa giải nén report/report thành đúng report/{analysis,evidence,figures,validation}; bản giải nén gốc lưu work/submission_import_original_20261014, không đưa vào Git.
 - [x] Toàn bộ test gốc đã chạy:67 passed,1 skipped,1 failed do test mẫu REPORT yêu cầu marker chưa điền; không sửa tests. Checker UTF-8:0 FAIL,0 WARN. Chi tiết report/analysis/verification.json.
-- [ ] Push các commit và nộp link repo; cần người dùng yêu cầu push. Không tuyên bố đạt đủ300 bước E3/E4.
+- [x] Đã push commit nộp đầu a40414a và người dùng đã nộp link repo. Không tuyên bố đạt đủ300 bước E3/E4.
+- [x] Sau nộp, đối chiếu notebook v2 giữ nguyên SHA256; bổ sung log trích,44 điểm train đã in (gồm smoke), biểu đồ loss/gradient và liên kết README/REPORT. Evidence nộp đầu không thay đổi; không chạy thêm model.

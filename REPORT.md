@@ -118,6 +118,14 @@ Chỉ đổi train_fraction: 10% so với 100%, nền E3 đã chọn bằng val.
 
 10% đạt F1=0.250980, CI95=[0.216511,0.287356]; 100% đạt F1=0.369818, CI95=[0.331691,0.410175]. Giảm dữ liệu làm F1 giảm 0.118837 và FP/ảnh tăng từ 1.286174 lên 1.710611; cả ba lớp đều giảm F1, trong khi JSON hợp lệ vẫn 100%. Các CI không giao nhau, phù hợp với mức giảm rõ ở lần chạy này, nhưng chưa có bootstrap hiệu ghép cặp hoặc nhiều seed để khẳng định tổng quát. Cùng 200 bước mà chỉ 142 ảnh train khiến mẫu bị lặp nhiều hơn; loss train cuối 0.114054 không đồng nghĩa tổng quát hóa tốt. So sánh E4 cô lập fraction ở cùng lịch/budget thực tế; không đại diện cho kết quả đủ 300 bước của đề.
 
+#### Nhật ký train bổ sung từ notebook Colab v2
+
+![Loss và gradient norm tại các bước đã được in](report/figures/training_log_samples.png)
+
+Biểu đồ dùng đúng 21 điểm đã in cho mỗi run (bước 1, 10, 20, …, 200), không nội suy thành log đầy đủ và không làm trơn. E3 loss từ 1.322907 xuống 0.514528; E4 10% từ 1.346753 xuống 0.114054. Tất cả điểm gradient đã trích đều hữu hạn, scale=1024. Loss E4 thấp hơn nhưng F1 test thấp hơn, phù hợp với nguy cơ học lặp tập nhỏ; chưa đủ để tách mọi nguyên nhân của chênh lệch tổng quát hóa.
+
+Nguồn: [log trích nguyên văn](report/logs/colab_v2_excerpt.txt), [các điểm train có provenance](report/logs/sampled_training_events.json). Bản v2 xác nhận E3 dừng do lỗi backup ở bước 200; E4 hoàn thành bước 200 dù backup cuối lỗi. Log bổ sung sau lần push nộp đầu tiên, không thay evidence hay khẳng định đã có run300.
+
 ## Nhìn lại
 
 Đã có evidence thật E0–E4, sáu ảnh có chú thích và kiểm chứng sai thang; E1 đạt yêu cầu định dạng/cải thiện F1. Vấn đề chính khi triển khai: tên skip quantization đầy đủ, torchao tùy chọn không tương thích, overflow gradient fp16 ở E3 và lỗi backup Drive. Đã sửa backup để lỗi Drive không làm dừng train; E4 đủ 200 bước dù backup bước cuối lỗi. Bản checkpoint tại thời điểm lỗi E3 chưa lưu optimizer/RNG để resume chính xác.

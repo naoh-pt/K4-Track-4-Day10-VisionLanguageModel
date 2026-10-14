@@ -1,5 +1,9 @@
 # Chạy bài trên Colab T4
 
+## Bài đã nộp và log bổ sung
+
+E0–E4 đã có evidence; dùng REPORT.md và report/evidence để đọc kết quả, không chạy lại model chỉ để làm đẹp output. `lab_day10_v2.ipynb` giữ nguyên trên local; report/logs chứa các log trích thật và SHA256 của bản tải về. E3/E4 thực tế200 bước. Bảng/biểu đồ được bổ sung từ log sau lần push nộp đầu, evidence vẫn giữ nguyên. Các hướng dẫn tiếp tục bên dưới là lịch sử công việc; không làm chúng thay đổi số bước đã báo cáo.
+
 ## Tiếp tục từ trạng thái ngày 14/10/2026
 
 ### Thay đổi sát hạn nộp (ưu tiên hơn hướng dẫn full E3 bên dưới)
