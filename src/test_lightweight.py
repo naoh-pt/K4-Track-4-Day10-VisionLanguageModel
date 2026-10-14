@@ -19,6 +19,39 @@ from .sft import answer_labels, collate_encoded
 
 
 class LightweightTests(unittest.TestCase):
+    def test_export_uses_real_predictions_and_excludes_weights(self):
+        from PIL import Image
+        from zipfile import ZipFile
+        from .export_submission import export
+        previous = Path.cwd()
+        with tempfile.TemporaryDirectory() as directory:
+            try:
+                os.chdir(directory)
+                Path("data/images").mkdir(parents=True)
+                Path("data/splits").mkdir(parents=True)
+                rows, predictions = [], []
+                for i in range(6):
+                    image_path = f"images/{i}.png"
+                    Image.new("RGB", (640, 360)).save(Path("data") / image_path)
+                    objects = [{"label": "pothole", "yolo": [.5, .5, .2, .2]}]
+                    rows.append({"image_id": str(i), "image_path": image_path,
+                                 "width": 640, "height": 360, "objects": objects})
+                    predictions.append({"image_id": str(i), "raw": objects_to_answer(objects) if i < 3 else "[]"})
+                Path("data/splits/test.jsonl").write_text("\n".join(map(json.dumps, rows)))
+                Path("data/splits/meta.json").write_text(json.dumps({"dataset_version": "synthetic"}))
+                Path("pred.jsonl").write_text("\n".join(map(json.dumps, predictions)))
+                output = export("pred.jsonl")
+                manifest = json.loads(Path("report/analysis/figure_manifest.json").read_text(encoding="utf-8"))
+                self.assertEqual(len(manifest["examples"]), 6)
+                self.assertEqual(sum(e["tp"] > 0 for e in manifest["examples"]), 3)
+                check = json.loads(Path("report/analysis/coord_scale_check.json").read_text(encoding="utf-8"))
+                self.assertGreater(check["correct_norm1000_f1"], check["wrong_pixel_f1"])
+                with ZipFile(output) as z:
+                    self.assertEqual(sum(n.endswith(".png") for n in z.namelist()), 6)
+                    self.assertTrue(all(n.startswith("report/") for n in z.namelist()))
+            finally:
+                os.chdir(previous)
+
     def test_recorded_early_stop_preserves_original_lr_horizon(self):
         from .run import main
         with patch("sys.argv", ["src.run", "train", "--config", "configs/e3.yaml",

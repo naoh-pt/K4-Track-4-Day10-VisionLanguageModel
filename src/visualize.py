@@ -4,10 +4,14 @@ from .coordinates import objects_to_answer, to_pixels
 from .data import load_image, read_jsonl, read_split
 
 
-def draw_examples(data_dir="data", split="val", prediction=None, coord="norm1000", out="report/figures", count=6):
+def draw_examples(data_dir="data", split="val", prediction=None, coord="norm1000", out="report/figures", count=6,
+                  image_ids=None):
     from PIL import ImageDraw
     from scripts.score import parse_output
     rows = read_split(data_dir, split)
+    if image_ids is not None:
+        by_id = {r["image_id"]: r for r in rows}
+        rows = [by_id[image_id] for image_id in image_ids]
     preds = {r["image_id"]: r["raw"] for r in read_jsonl(prediction)} if prediction else {}
     output = Path(out)
     output.mkdir(parents=True, exist_ok=True)
