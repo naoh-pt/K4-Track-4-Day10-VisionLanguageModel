@@ -68,7 +68,7 @@ def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smok
     torch.cuda.synchronize()
     started = time.perf_counter()
     iterator = iter(loader)
-    steps = smoke_steps if smoke else cfg["max_steps"]
+    steps = smoke_steps if smoke else cfg.get("stop_after", cfg["max_steps"])
     projector_sample = None
     adapter_sample = None
     for name, p in model.named_parameters():

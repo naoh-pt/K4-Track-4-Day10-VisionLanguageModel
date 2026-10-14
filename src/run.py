@@ -22,6 +22,8 @@ def main():
     train.add_argument("--batch-size", type=int)
     train.add_argument("--grad-accum", type=int)
     train.add_argument("--amp-init-scale", type=float)
+    train.add_argument("--stop-after", type=int,
+                       help="Dừng sớm có ghi nhận; giữ nguyên lịch LR max_steps gốc.")
     train.add_argument("--smoke", action="store_true")
     train.add_argument("--smoke-steps", type=int, default=2)
     train.add_argument("--smoke-dir")
@@ -45,6 +47,10 @@ def main():
     if args.command == "train":
         from .train import train as train_run
         cfg = load_config(args.config, args.fraction, args.batch_size, args.grad_accum)
+        if args.stop_after is not None:
+            if not 1 <= args.stop_after <= cfg["max_steps"]:
+                parser.error("stop-after phải trong [1,max_steps].")
+            cfg["stop_after"] = args.stop_after
         if args.amp_init_scale is not None:
             import math
             if not math.isfinite(args.amp_init_scale) or args.amp_init_scale <= 0:

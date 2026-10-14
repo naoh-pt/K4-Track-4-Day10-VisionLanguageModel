@@ -2,6 +2,12 @@
 
 ## Tiếp tục từ trạng thái ngày 14/10/2026
 
+### Thay đổi sát hạn nộp (ưu tiên hơn hướng dẫn full E3 bên dưới)
+
+Người dùng quyết định dùng E3 `e3_scale1024/step-0200` sau khi backup Drive làm dừng run ở bước 200. Đã đánh giá val và test E1–E3; E3 val F1=0.3223736969. E3 là run **200 bước, không đạt đủ 300 bước của đề**. Dùng tên E3_step0200 và trình bày rõ hạn chế; không gọi là full 300.
+
+E4 data_size dùng nền E3 đã chọn bằng val: 10% so với đối chứng 100% tại cùng 200 bước thực tế, scale1024, batch2/accum4, LR/seed gốc. CLI `--stop-after 200` ghi nhận dừng sớm nhưng vẫn giữ `max_steps=300` để lịch warmup/cosine khớp 200 bước đầu của đối chứng E3 (không đổi thành lịch LR 200 bước). Run E4 và đối chứng đều có sai khác thời lượng so với yêu cầu đề; không bảo đảm đủ điểm. Đối chứng 100% tái chấm prediction E3 test đã có, không suy luận lại. Không chạy mục 7/8 cũ với đường dẫn step-0300 cho E3.
+
 - `lab_day10_v1.ipynb` là bản người dùng tải về, giữ nguyên lịch sử/ảnh/output/lỗi. Dùng **`lab_day10.ipynb` đã chỉnh** cho lượt Colab tiếp theo; các cell mới chưa chạy và không gắn output giả. Phụ lục trích output thật có ghi nguồn cell v1; REPORT chưa sửa và evidence gốc chưa được tải về local.
 - Đã xong E0 test; E1/E2 train 300 bước + val. E3 smoke `e3_scale1024_smoke` đạt 8 bước và round-trip adapter/projector; **full E3 chưa chạy**. Test E1–E3, E4 và báo cáo vẫn còn.
 - Tạo lại ZIP bằng `python -m src.package_colab` (đã tạo khi bàn giao), upload notebook mới và ZIP mới. Chạy mục 0: setup, kiểm tra GPU/mount Drive, **cell khôi phục sau nghỉ GPU**. Cell này chép các run cần thiết từ Drive, giữ nguyên source mới và kết quả đang có. ZIP không chứa trọng số; trọng số chỉ chép giữa Drive và Colab.

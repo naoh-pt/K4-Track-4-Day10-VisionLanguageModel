@@ -19,6 +19,19 @@ from .sft import answer_labels, collate_encoded
 
 
 class LightweightTests(unittest.TestCase):
+    def test_recorded_early_stop_preserves_original_lr_horizon(self):
+        from .run import main
+        with patch("sys.argv", ["src.run", "train", "--config", "configs/e3.yaml",
+                                "--out", "unused", "--fraction", "0.1", "--amp-init-scale", "1024",
+                                "--stop-after", "200", "--smoke"]), patch("src.train.train") as train:
+            main()
+        cfg = train.call_args.args[0]
+        self.assertEqual(cfg["max_steps"], 300)
+        self.assertEqual(cfg["stop_after"], 200)
+        self.assertEqual(cfg["train_fraction"], .1)
+        self.assertEqual(cfg["amp_init_scale"], 1024.)
+        self.assertEqual((cfg["batch_size"], cfg["grad_accum"]), (2, 4))
+
     def test_backup_latest_only_and_drive_failure_is_nonfatal(self):
         from .checkpoints import backup_run
         with tempfile.TemporaryDirectory() as directory:
