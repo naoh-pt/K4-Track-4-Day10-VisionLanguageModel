@@ -3,21 +3,22 @@ import json
 import math
 import random
 import time
-from functools import partial
+import uuid
 from pathlib import Path
 
-from .checkpoints import backup_run, load_checkpoint, save_checkpoint
+from .checkpoints import backup_run, load_checkpoint, restore_projector, save_checkpoint, verify_checkpoint
 from .config import fingerprint, write_json
 from .data import read_split, subset_train
-from .modeling import load_base, require_colab_gpu
+from .modeling import load_base, require_colab_gpu, parameter_report
+from .resume import BatchStream, training_state, restore_training_state
 from .setups import apply_setup, is_projector
 from .sft import SFTDataset, collate_encoded, inspect_encoding
 
 
-def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smoke_dir=None):
+def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smoke_dir=None,
+          resume_from=None, pause_at=None, checkpoint_every=100):
     require_colab_gpu()
     import torch
-    from torch.utils.data import DataLoader
     from peft.utils.save_and_load import get_peft_model_state_dict
 
     if cfg["name"] == "E0":
@@ -25,28 +26,57 @@ def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smok
     data_dir, out = Path(data_dir), Path(out)
     dataset_version = json.loads((data_dir / "splits/meta.json").read_text(encoding="utf-8"))["dataset_version"]
     signature = fingerprint(cfg, dataset_version)
+    steps = smoke_steps if smoke else cfg.get("stop_after", cfg["max_steps"])
+    if checkpoint_every < 1 or (pause_at is not None and not 1 <= pause_at <= steps):
+        raise ValueError("checkpoint_every/pause_at không hợp lệ.")
+    previous_run, resume_path = {}, None
+    if resume_from:
+        resume_path = verify_checkpoint(resume_from, require_resume=True)
+        previous_run = json.loads((resume_path / "run.json").read_text(encoding="utf-8"))
+        if previous_run["fingerprint"] != signature or previous_run["smoke"] != smoke:
+            raise ValueError("Checkpoint khác config/dataset/chế độ smoke.")
+        if previous_run["steps"] >= steps or (pause_at is not None and pause_at <= previous_run["steps"]):
+            raise ValueError("Checkpoint đã đạt/vượt bước đích; không train lại.")
     if not smoke:
         marker = json.loads((Path(smoke_dir or "") / "smoke_pass.json").read_text(encoding="utf-8"))
         if marker.get("fingerprint") != signature:
             raise ValueError("Smoke test không khớp cấu hình/dataset. Chạy smoke lại cho cấu hình này.")
+        if marker.get("resume_state_format") != 1:
+            raise ValueError("Cần smoke mới kiểm tra checkpoint có state resume.")
+        if not marker.get("resume_smoke_pass"):
+            raise ValueError("Cần smoke pause/resume thành công trước full train mới.")
     if smoke_steps < 1:
         raise ValueError("smoke_steps phải dương.")
-    out.mkdir(parents=True, exist_ok=False)
+    out.mkdir(parents=True, exist_ok=bool(resume_from))
     random.seed(cfg["seed"])
     torch.manual_seed(cfg["seed"])
     torch.cuda.manual_seed_all(cfg["seed"])
     rows = subset_train(read_split(data_dir, "train"), cfg["train_fraction"], cfg["seed"])
     if smoke:
         rows = rows[:8]
-    write_json(out / "train_ids.json", [r["image_id"] for r in rows])
-    model, processor = load_base(cfg)
+    ids = [r["image_id"] for r in rows]
+    if resume_path and json.loads((resume_path.parent / "train_ids.json").read_text(encoding="utf-8")) != ids:
+        raise ValueError("Danh sách/thứ tự train images khác checkpoint.")
+    write_json(out / "train_ids.json", ids)
+    revision = previous_run.get("model_revision") or (marker.get("model_revision") if not smoke else None)
+    model, processor = load_base(cfg, revision=revision)
+    model_revision = getattr(model.config, "_commit_hash", None)
+    write_json(out / "architecture.json", parameter_report(model))
     model, setup = apply_setup(model, cfg)
+    if resume_path:
+        from safetensors.torch import load_file
+        from peft.utils.save_and_load import set_peft_model_state_dict
+        adapter = load_file(str(resume_path / "adapter_model.safetensors"))
+        set_peft_model_state_dict(model, adapter)
+        restored_adapter = get_peft_model_state_dict(model)
+        assert set(adapter) == set(restored_adapter)
+        assert all(torch.equal(v, restored_adapter[n].detach().cpu()) for n, v in adapter.items())
+        restore_projector(model, resume_path, cfg["train_projector"])
+        del adapter, restored_adapter
     write_json(out / "setup.json", setup)
     dataset = SFTDataset(rows, processor, data_dir)
     inspect_encoding(processor, rows[0], dataset[0])
-    loader = DataLoader(dataset, batch_size=cfg["batch_size"], shuffle=True, num_workers=0,
-                        collate_fn=partial(collate_encoded, pad_token_id=processor.tokenizer.pad_token_id),
-                        generator=torch.Generator().manual_seed(cfg["seed"]))
+    stream = BatchStream(len(dataset), cfg["batch_size"], cfg["seed"])
     model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
     model.config.use_cache = False
     model.train()
@@ -63,12 +93,21 @@ def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smok
 
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_factor)
     scaler = torch.amp.GradScaler("cuda", init_scale=cfg.get("amp_init_scale", 65536.0))
+    names = [n for n, p in model.named_parameters() if p.requires_grad]
+    start_step = 0
+    if resume_path:
+        state = torch.load(resume_path / "training_state.pt", map_location="cpu", weights_only=True)
+        start_step = restore_training_state(state, optimizer, scheduler, scaler, stream,
+                                           fingerprint=signature, trainable_names=names,
+                                           smoke=smoke, target_steps=steps)
+        if start_step != previous_run["steps"]:
+            raise ValueError("Run metadata và optimizer state không cùng bước.")
+        del state
+        print("RESUME from optimizer step", start_step, flush=True)
     print({"amp_init_scale": scaler.get_scale()}, flush=True)
     torch.cuda.reset_peak_memory_stats()
     torch.cuda.synchronize()
     started = time.perf_counter()
-    iterator = iter(loader)
-    steps = smoke_steps if smoke else cfg.get("stop_after", cfg["max_steps"])
     projector_sample = None
     adapter_sample = None
     for name, p in model.named_parameters():
@@ -76,17 +115,16 @@ def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smok
             projector_sample = (name, p.detach().flatten()[:4096].cpu().clone())
         if "lora_B" in name and adapter_sample is None:
             adapter_sample = (name, p.detach().cpu().clone())
-    log_path = out / "train_log.jsonl"
+    log_path = out / (f"train_log_resume_{start_step:04d}_{uuid.uuid4().hex[:8]}.jsonl"
+                      if resume_from else "train_log.jsonl")
+    print("Train log:", log_path, flush=True)
     optimizer.zero_grad(set_to_none=True)
     with log_path.open("x", encoding="utf-8") as log:
-        for step in range(1, steps+1):
+        for step in range(start_step+1, steps+1):
             loss_sum = 0.0
             for _ in range(cfg["grad_accum"]):
-                try:
-                    batch = next(iterator)
-                except StopIteration:
-                    iterator = iter(loader)
-                    batch = next(iterator)
+                batch = collate_encoded([dataset[i] for i in stream.next_indices()],
+                                        processor.tokenizer.pad_token_id)
                 batch = {k: v.to("cuda:0") for k, v in batch.items()}
                 with torch.autocast("cuda", dtype=torch.float16):
                     loss = model(**batch).loss
@@ -120,17 +158,28 @@ def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smok
             log.flush()
             if step == 1 or step % 10 == 0 or step == steps:
                 print(event, flush=True)
-            if step % 100 == 0 or step == steps:
+            if step % checkpoint_every == 0 or step == steps or step == pause_at:
                 torch.cuda.synchronize()
                 run = {"trainable_params": setup["trainable_params"],
-                       "peak_vram_gb": torch.cuda.max_memory_allocated() / 1024**3,
-                       "train_minutes": (time.perf_counter()-started) / 60,
+                       "peak_vram_gb": max(previous_run.get("peak_vram_gb", 0), torch.cuda.max_memory_allocated() / 1024**3),
+                       "train_minutes": previous_run.get("train_minutes", 0) + (time.perf_counter()-started) / 60,
                        "dataset_version": dataset_version, "steps": step, "smoke": smoke,
-                       "fingerprint": signature, "config": cfg}
+                       "fingerprint": signature, "config": cfg, "model_revision": model_revision,
+                       "resume_state_format": 1, "resumed_from": str(resume_path) if resume_path else None}
                 checkpoint = out / f"step-{step:04d}"
-                save_checkpoint(model, processor, checkpoint, cfg, run)
+                state = training_state(optimizer, scheduler, scaler, stream, step=step,
+                                       fingerprint=signature, trainable_names=names,
+                                       smoke=smoke, target_steps=steps)
+                save_checkpoint(model, processor, checkpoint, cfg, run, training_state=state)
+                del state
                 write_json(out / "run.json", run)
-                backup_run(out, backup_root)
+                # Smoke final chỉ upload sau khi round-trip/inference và marker đã đạt.
+                # Nếu validation ngắt, ZIP pause trước đó vẫn là điểm phục hồi hợp lệ.
+                if not smoke or step < steps:
+                    backup_run(out, backup_root)
+            if step == pause_at and step < steps:
+                print("PAUSED after saving optimizer/RNG/data state:", checkpoint, flush=True)
+                return checkpoint
     if smoke:
         current = dict(model.named_parameters())
         assert adapter_sample is not None
@@ -145,7 +194,7 @@ def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smok
         gc.collect()
         torch.cuda.empty_cache()
         # Nạp lại model gốc để kiểm tra round-trip trong giới hạn 16 GB.
-        base, processor = load_base(cfg)
+        base, processor = load_base(cfg, revision=model_revision)
         restored = load_checkpoint(base, checkpoint)
         actual = get_peft_model_state_dict(restored)
         assert set(expected_adapter) == set(actual)
@@ -165,7 +214,10 @@ def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smok
         print("Smoke output:", read_jsonl(prediction), flush=True)
         # Vài bước chưa đủ để đòi chất lượng/JSON hoàn hảo; smoke xác nhận đường chạy.
         write_json(out / "smoke_pass.json", {"fingerprint": signature, "steps": steps,
-                   "adapter_roundtrip": True, "projector_roundtrip": bool(cfg["train_projector"])})
+                   "adapter_roundtrip": True, "projector_roundtrip": bool(cfg["train_projector"]),
+                   "resume_state_format": 1, "resume_smoke_pass": resume_path is not None,
+                   "model_revision": model_revision,
+                   "resumed_from": str(resume_path) if resume_path else None})
         backup_run(out, backup_root)
         print("SMOKE PASS — có thể chạy full với --smoke-dir", out, flush=True)
     print("Checkpoint:", checkpoint, flush=True)

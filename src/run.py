@@ -28,6 +28,9 @@ def main():
     train.add_argument("--smoke-steps", type=int, default=2)
     train.add_argument("--smoke-dir")
     train.add_argument("--backup")
+    train.add_argument("--resume-from")
+    train.add_argument("--pause-at", type=int, help="Pause có state đầy đủ, không đổi bước đích/lịch LR.")
+    train.add_argument("--checkpoint-every", type=int, default=100)
     infer = commands.add_parser("predict")
     infer.add_argument("--config", default="configs/e0.yaml")
     infer.add_argument("--checkpoint")
@@ -56,7 +59,8 @@ def main():
             if not math.isfinite(args.amp_init_scale) or args.amp_init_scale <= 0:
                 parser.error("amp-init-scale phải hữu hạn và dương.")
             cfg["amp_init_scale"] = args.amp_init_scale
-        train_run(cfg, args.data, args.out, args.smoke, args.smoke_steps, args.backup, args.smoke_dir)
+        train_run(cfg, args.data, args.out, args.smoke, args.smoke_steps, args.backup, args.smoke_dir,
+                  resume_from=args.resume_from, pause_at=args.pause_at, checkpoint_every=args.checkpoint_every)
     elif args.command == "predict":
         from .data import read_split
         from .modeling import load_base
@@ -82,7 +86,7 @@ def main():
             cfg = load_config(args.config)
             if cfg["name"] != "E0":
                 parser.error("E1–E4 cần --checkpoint.")
-        model, processor = load_base(cfg)
+        model, processor = load_base(cfg, revision=run.get("model_revision") if args.checkpoint else None)
         if args.checkpoint:
             model = load_checkpoint(model, args.checkpoint)
         predict(model, processor, rows, args.data, args.out, args.batch_size, cfg["max_new_tokens"])
@@ -110,6 +114,10 @@ def main():
                 cli.extend(["--meta", f"{key}={run[key]}"])
             cfg = run["config"]
             cli.extend(["--meta", f"base_setup={cfg['name']}", "--meta", f"train_fraction={cfg['train_fraction']}"])
+            if "steps" in run:
+                cli.extend(["--meta", f"actual_steps={run['steps']}", "--meta", f"lr_horizon={cfg['max_steps']}"])
+            if "amp_init_scale" in cfg:
+                cli.extend(["--meta", f"amp_init_scale={cfg['amp_init_scale']}"])
         elif args.name.upper() != "E0":
             parser.error("Setup có train cần --checkpoint để lấy meta thật.")
         score_main(cli)
