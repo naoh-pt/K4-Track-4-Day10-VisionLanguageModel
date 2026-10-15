@@ -53,3 +53,12 @@
 - [x] Toàn bộ test gốc đã chạy:67 passed,1 skipped,1 failed do test mẫu REPORT yêu cầu marker chưa điền; không sửa tests. Checker UTF-8:0 FAIL,0 WARN. Chi tiết report/analysis/verification.json.
 - [x] Đã push commit nộp đầu a40414a và người dùng đã nộp link repo. Không tuyên bố đạt đủ300 bước E3/E4.
 - [x] Sau nộp, đối chiếu notebook v2 giữ nguyên SHA256; bổ sung log trích,44 điểm train đã in (gồm smoke), biểu đồ loss/gradient và liên kết README/REPORT. Evidence nộp đầu không thay đổi; không chạy thêm model.
+
+## Gia hạn15/10 — chuẩn bị run300
+
+- [x] State optimizer/scheduler/scaler/RNG và batch cursor, manifest/complete checkpoint; chặn resume từ checkpoint legacy200 hoặc sai config/version.
+- [x] Backup ZIP rolling được kiểm checksum trước thay latest của đúng run mới; lỗi Drive không dừng train, giữ local để cứu.
+- [x] Kiểm tra CPU nhỏ: batch order giống DataLoader cũ; dropout/optimizer/LR/scaler/tensor cuối khớp khi pause/resume; ZIP round-trip/checksum và rejection; đếm logical Params4bit shape.
+- [x] `lab_day10_continue300.ipynb`, `COLAB_CONTINUE300.md`, bundle mới; kết quả mới ở report/extended, chưa đổi evidence/REPORT đã nộp.
+- [ ] Người dùng chạy smoke pause4→resume8 trên T4; xác nhận architecture và state restore GPU trước full.
+- [ ] E3 đủ300, val chọn nền E4, E4 đủ300, test mới, cập nhật báo cáo/ảnh và kiểm tra trước nộp lại.

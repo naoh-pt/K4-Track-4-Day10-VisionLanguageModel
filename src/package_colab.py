@@ -1,9 +1,13 @@
 """Đóng gói source để upload Colab, không cần commit/push."""
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
+import argparse
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out", default="work/colab_bundle.zip")
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     files = []
     for directory, suffix in (("src", ".py"), ("scripts", ".py"), ("tests", ".py"), ("configs", ".yaml")):
@@ -12,7 +16,11 @@ def main():
     files.extend(root / name for name in ("README.md", "GUIDE.md", "RUBRIC.md", "REPORT.md",
                  "IMPLEMENTATION_PLAN.md", "COLAB_RUN_GUIDE.md", "requirements-colab.txt",
                  "pytest.ini", ".gitignore", "lab_day10.ipynb"))
-    destination = root / "work/colab_bundle.zip"
+    files.extend(root / name for name in ("lab_day10_continue300.ipynb", "COLAB_CONTINUE300.md")
+                 if (root / name).exists())
+    destination = (root / args.out).resolve()
+    if not destination.is_relative_to((root / "work").resolve()):
+        raise ValueError("Bundle phải lưu trong work/ để không vô tình commit ZIP.")
     destination.parent.mkdir(exist_ok=True)
     with ZipFile(destination, "w", ZIP_DEFLATED) as archive:
         for path in sorted(files):
