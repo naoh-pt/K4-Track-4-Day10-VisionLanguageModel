@@ -3,11 +3,11 @@ Họ tên: Phan Trọng Hoàn
 
 ## Phạm vi và giới hạn thực nghiệm
 
-E0 là model gốc; E1/E2 khởi tạo độc lập từ model gốc và train đủ 300 bước. E3 cũng khởi tạo độc lập, nhưng chỉ dùng checkpoint **200 bước**: lỗi sao lưu Google Drive làm process dừng sau khi đã lưu checkpoint local. Checkpoint này đã được cứu và kiểm tra ZIP trên Drive. Không gọi E3 là run đủ 300 bước; đây là sai khác so với cấu hình bắt buộc và có thể ảnh hưởng điểm.
+E0 là model gốc; E1/E2/E3 khởi tạo độc lập từ model gốc và đều train đủ **300 bước**. E3 mới là run `e3_r300_v1`, đã resume bằng optimizer/scheduler/scaler/RNG và thứ tự batch từ checkpoint200 rồi220. E4 10% là run `e4_data10_r300_v2_e3`, khởi tạo từ model gốc, đủ300 bước; đối chứng100% tái sử dụng E3. E5 không thực hiện.
 
-E1/E2 dùng AMP scale mặc định 65536; E3 dùng init_scale=1024 sau khi gradient không hữu hạn ở bước 6 với scale mặc định. Thử batch 1/accum 8 cũng lỗi gradient, nên run E3 được giữ lại dùng batch 2/accum 4 như đề. Smoke 8 bước kiểm tra adapter và projector round-trip đều đạt. Vì số bước và scale khác nhau, so sánh E2/E3 chưa cô lập hoàn toàn tác động của LoRA ViT.
+E1/E2 dùng AMP scale mặc định65536; E3/E4 dùng init_scale1024 sau lỗi gradient fp16. E3 từng dừng ở216 dù loss hữu hạn; code mới retry có giới hạn, phát lại batch/RNG và giảm scale khi gradient không hữu hạn, không cập nhật optimizer/LR cho lần thử lỗi. Log thành công không chứng minh retry đã được kích hoạt ở216; không tự nhận overflow đã tái hiện. Scale khác nhau vẫn là giới hạn khi diễn giải E2/E3.
 
-E4 đã hoàn thành cả hai giá trị data_size 10%/100% tại 200 bước thực tế. E5 không thực hiện. Bảng dưới là **test**, không trộn với val. Evidence giữ nguyên nội dung scorer gốc.
+Run E4 v1 đủ300 từng báo backup thành công nhưng ZIP Drive trở thành0 byte ở phiên sau. Không dùng metadata thay trọng số: E4 được train lại độc lập thành v2 và chấm test thật. ZIP rescue v2 đã được người dùng sao chép, kiểm tra kích thước/SHA256 và cấu trúc ZIP trong phiên; chưa coi đó là bảo đảm lưu trữ lâu dài. `model_revision=null` là thiếu provenance phiên bản model. [Bản báo cáo200 bước](report/history/step0200/REPORT.md) và evidence cũ được giữ riêng, không trộn với bảng mới.
 
 ## Bảng tổng hợp test (311 ảnh)
 
@@ -16,19 +16,19 @@ E4 đã hoàn thành cả hai giá trị data_size 10%/100% tại 200 bước th
 | E0 | zero-shot / 0 | 0 | Không đo | Không train | 0.050901 | [0.032895, 0.071279] | 1.080386 | 0.101911 | 0.000000 | 0.107383 |
 | E1 | LoRA LLM / 300 | 33,030,144 | 6.428408 | 44.680388 | 0.260398 | [0.224799, 0.299552] | 1.218650 | 0.147783 | 0.196018 | 0.520000 |
 | E2 | + projector / 300 | 142,135,296 | 8.122632 | 45.796419 | 0.329390 | [0.291174, 0.371917] | 1.077170 | 0.184332 | 0.268212 | 0.575540 |
-| E3 | + LoRA ViT / **200** | 148,426,752 | 8.302096 | 39.356097 | 0.369818 | [0.331691, 0.410175] | 1.286174 | 0.241667 | 0.299559 | 0.645614 |
-| E4 10% | Nền E3 / 200 | 148,426,752 | 7.750809 | 39.230916 | 0.250980 | [0.216511, 0.287356] | 1.710611 | 0.120690 | 0.217523 | 0.505660 |
-| E4 100% | Tái sử dụng E3 / 200 | 148,426,752 | 8.302096 | 39.356097 | 0.369818 | [0.331691, 0.410175] | 1.286174 | 0.241667 | 0.299559 | 0.645614 |
+| E3 | + LoRA ViT / 300 | 148,426,752 | 8.302537 | 58.053650 | 0.433515 | [0.395126, 0.475915] | 0.890675 | 0.294643 | 0.355786 | 0.691525 |
+| E4 10% | Nền E3 / 300, v2 | 148,426,752 | 7.750031 | 58.903531 | 0.302795 | [0.268997, 0.337255] | 1.639871 | 0.207612 | 0.225627 | 0.597865 |
+| E4 100% | Tái sử dụng E3 / 300 | 148,426,752 | 8.302537 | 58.053650 | 0.433515 | [0.395126, 0.475915] | 0.890675 | 0.294643 | 0.355786 | 0.691525 |
 
-Nguồn: [E0](report/evidence/e0.json), [E1](report/evidence/e1.json), [E2](report/evidence/e2.json), [E3 200 bước](report/evidence/e3.json), [E4 10%](report/evidence/e4_data_size_0.1.json), [E4 100%](report/evidence/e4_data_size_1.0.json). Các số trong bảng được làm tròn; JSON chứa giá trị đầy đủ. `train_minutes` là thời gian theo bộ đếm của code, có thể bao gồm các lần backup trước đó; không phải phép đo thời gian GPU thuần túy.
+Nguồn: [E0](report/evidence/e0.json), [E1](report/evidence/e1.json), [E2](report/evidence/e2.json), [E3 300 bước](report/evidence/e3.json), [E4 10%](report/evidence/e4_data_size_0.1.json), [E4 100%](report/evidence/e4_data_size_1.0.json). Các số trong bảng được làm tròn; JSON chứa giá trị đầy đủ. `train_minutes` là thời gian theo bộ đếm của code, có thể bao gồm các lần backup trước đó; không phải phép đo thời gian GPU thuần túy. Với resume, bộ đếm không cộng toàn bộ thời gian của phiên thất bại/các bước phải chạy lại; E4 v2 không cộng chi phí run v1 bị mất backup.
 
-Val dùng gỡ lỗi và chọn nền E4: E1 F1=0.207245; E2=0.300172; E3 200 bước=0.322374. Các file gốc được lưu tại [report/validation](report/validation). Chọn nền E3 theo val trước khi xem kết quả E4; không chọn bằng test.
+Val dùng gỡ lỗi và chọn nền E4: E1 F1=0.207245; E2=0.300172; E3 300 bước=0.362140. Các file gốc được lưu tại [report/validation](report/validation). Chọn nền E3 theo val trước khi xem kết quả E4; không chọn bằng test.
 
 ## 10 câu hỏi
 
 ### Câu 1 — Kiến trúc: ViT, projector và LLM có bao nhiêu tham số, E1/E2/E3 cập nhật khối nào?
 
-Luồng xử lý là ViT trích đặc trưng ảnh → merger và các DeepStack merger đưa đặc trưng vào không gian ngôn ngữ → LLM sinh JSON. Quy mô khoảng 4.44B tổng, LLM + embedding khoảng 4.0B và ViT khoảng 415M là **ước lượng kiến trúc trong GUIDE**, không phải phép đếm toàn model mới đo của tôi. Tôi chưa lưu phép đếm riêng từng khối của base model nên không trình bày các ước lượng này như số thực đo.
+Luồng xử lý là ViT trích đặc trưng ảnh → merger và các DeepStack merger đưa đặc trưng vào không gian ngôn ngữ → LLM sinh JSON. [Phép đếm thực tế trên Colab](report/extended/analysis/architecture.json) cho tổng4,437,815,808 tham số duy nhất: backbone ViT306,242,560; merger27,271,680; DeepStack mergers81,833,472; language_model4,022,468,096. Projector tổng109,105,152; toàn visual415,347,712. Params4bit được đếm bằng shape gốc trước khi pack uint8. `lm_head:0` là số tham số riêng được gán vào nhóm này khi loại bỏ tham số dùng chung, không phải chứng cứ rằng model không có head; chưa ghi kiểm chứng alias riêng.
 
 Số trainable thực đo của tôi: E1=33,030,144; E2=142,135,296; E3=148,426,752. E2 mở thêm đúng 109,105,152 tham số projector; E3 thêm 6,291,456 tham số LoRA ViT so với E2. E1 chỉ LoRA LLM (252 module), E2 thêm full projector `visual.merger` và `visual.deepstack_merger_list`; E3 thêm 96 module attention/MLP ViT, tổng 348 module LoRA. Backbone và lm_head còn lại đóng băng.
 
@@ -42,7 +42,7 @@ E1 test đạt parse_valid_rate=1.0; cải thiện định dạng là rõ, nhưn
 
 Nhãn gốc YOLO chuẩn hóa được đổi sang góc xyxy, nhân 1000, làm tròn/kẹp và sắp theo (y1,x1). Ví dụ box tâm (0.5,0.5), kích thước (0.2,0.2) thành [400,400,600,600], tương ứng pixel [256,144,384,216] trên ảnh 640×360. Đây là kiểm tra tổng hợp nhỏ, không phải kết quả model.
 
-Nếu coi tọa độ 0–1000 là pixel, scorer chia sai theo width/height rồi nhân 1000, làm vị trí/kích thước box và IoU sai dù JSON vẫn hợp lệ. Trên cùng prediction thật E3 của 311 ảnh test, F1 đúng norm1000=0.3698175788, còn cố ý chấm như pixel thì F1=0.0, trong khi parse_valid_rate vẫn 1.0. Đây là phép chấm lại đầu ra đã lưu để phân tích lỗi, không sinh prediction mới, không chọn cấu hình theo test. Kết quả: [coord_scale_check.json](report/analysis/coord_scale_check.json).
+Nếu coi tọa độ 0–1000 là pixel, scorer chia sai theo width/height rồi nhân 1000, làm vị trí/kích thước box và IoU sai dù JSON vẫn hợp lệ. Trên cùng prediction thật **E3 300 bước** của311 ảnh test, F1 đúng norm1000=0.4335154827, còn cố ý chấm như pixel thì F1=0.0, trong khi parse_valid_rate vẫn0.993569. Đây là phép chấm lại đầu ra đã lưu để phân tích lỗi, không sinh prediction mới, không chọn cấu hình theo test. Kết quả: [coord_scale_check.json](report/analysis/coord_scale_check.json).
 
 ### Câu 4 — Vì sao chỉ tính loss trên phần trả lời?
 
@@ -72,62 +72,60 @@ Dataset_version=d10-21e4070301; số liệu khớp meta của dataset thật. Va
 
 E1 tăng F1 test 0.209496 so E0, vượt ngưỡng 0.10 của rubric. E2 tăng 0.068993 so E1, đồng thời FP/ảnh giảm từ 1.218650 xuống 1.077170; đổi lại thêm 109,105,152 tham số và khoảng 1.694 GB VRAM. Thời gian thực đo E2 hơn E1 khoảng 1.116 phút, nhưng phép đo có I/O backup nên không suy ra tỷ lệ tốc độ thuần.
 
-E3 200 bước có F1 cao nhất quan sát được (0.369818), tăng 0.040427 so E2; F1 cả ba lớp cao hơn. Tuy nhiên FP/ảnh tăng lên 1.286174, còn số bước/scale không đồng nhất với E2. Tôi không kết luận chênh lệch chỉ do LoRA ViT, cũng không dùng thời gian 200 bước để nói E3 nhanh hơn run 300 bước. E2 là đối chứng đủ 300 bước rõ hơn; nền E4 được chọn theo tiêu chí F1 val đã nêu, với giới hạn 200 bước được ghi nhận.
+E3 đủ300 có F1 cao nhất quan sát được0.433515, tăng0.104125 so E2. FP/ảnh giảm từ1.077170 xuống0.890675, F1 cả ba lớp cao hơn. Mở LoRA ViT thêm6,291,456 tham số, VRAM tăng khoảng0.180GB. Số bước và lịch LR đã đồng nhất300; tuy nhiên AMP scale khác và chỉ một seed nên không quy toàn bộ chênh lệch cho LoRA ViT. E3 được chọn làm nền E4 bằng F1 val0.362140, không phải bằng test.
 
 ### Câu 8 — Test 311 ảnh và CI95 giới hạn kết luận thế nào?
 
-CI95 F1 E1=[0.224799,0.299552], E2=[0.291174,0.371917], E3=[0.331691,0.410175]; độ rộng khoảng 0.07475, 0.08074 và 0.07848. E1/E2 và E2/E3 đều có vùng giao nhau. Tôi chỉ báo chênh lệch điểm quan sát, chưa khẳng định ý nghĩa thống kê; cần bootstrap ghép cặp của hiệu F1 hoặc thêm session/seed để kiểm tra chắc hơn. CI giao nhau tự nó cũng không chứng minh hai model tương đương.
+CI95 F1 E1=[0.224799,0.299552], E2=[0.291174,0.371917], E3=[0.395126,0.475915]. E1/E2 có vùng giao; E2/E3 không giao trong lần chạy này. Tôi chỉ báo chênh lệch điểm quan sát; chưa có bootstrap ghép cặp của hiệu F1 hoặc nhiều seed để kiểm tra ý nghĩa thống kê. CI giao/không giao không thay thế trực tiếp kiểm định hiệu ghép cặp.
 
-Scorer gốc bootstrap theo ảnh; vì frame trong cùng session còn tương quan, CI này chưa phản ánh đầy đủ bất định theo session. Chỉ một seed và E3 ít bước hơn là các giới hạn bổ sung. Không điều chỉnh cấu hình theo kết quả test.
+Scorer gốc bootstrap theo ảnh; vì frame trong cùng session còn tương quan, CI này chưa phản ánh đầy đủ bất định theo session. Chỉ một seed, AMP scale khác nhau và thiếu model revision là các giới hạn bổ sung. Không điều chỉnh cấu hình theo kết quả test.
 
 ### Câu 9 — Phân tích lỗi theo lớp và hình minh họa?
 
-Pothole có F1 thấp nhất ở cả E1/E2/E3. E3 test: pothole TP=29, FP=90, FN=92, F1=0.241667; crack TP=102, FP=280, FN=197, F1=0.299559; manhole TP=92, FP=30, FN=71, F1=0.645614. Crack có số FP lớn nhất, cho thấy còn nhiều dự đoán thừa hoặc định vị chưa đạt IoU0.5.
+Pothole có F1 thấp nhất ở cả E1/E2/E3. E3 300 bước test: pothole TP=33, FP=70, FN=88, F1=0.294643; crack TP=103, FP=177, FN=196, F1=0.355786; manhole TP=102, FP=30, FN=61, F1=0.691525. Crack có nhiều FP nhất, cho thấy dự đoán thừa hoặc định vị chưa đạt IoU0.5 vẫn là vấn đề.
 
-Box nhỏ, tương phản thấp và sự khác biệt hình dạng có thể là nguyên nhân, nhưng đây là giả thuyết cần đối chiếu ảnh, chưa có thống kê nguyên nhân theo kích thước. Sáu ảnh dưới được chọn từ prediction E3 thật: ba ảnh khớp đủ box và ba ảnh có FP/FN; không đại diện cho tỷ lệ lỗi toàn tập. Ghép box cùng lớp, IoU≥0.5 bằng scorer gốc. GT xanh, prediction đỏ; [manifest](report/analysis/figure_manifest.json) ghi image_id và số đếm để đối chiếu.
+Box nhỏ, tương phản thấp và sự khác biệt hình dạng có thể là nguyên nhân, nhưng chưa có thống kê lỗi theo kích thước. Sáu hình sau được xuất từ prediction E3 **300 bước**: ba ảnh khớp đủ box và ba ảnh có nhiều FP/FN. Chọn mẫu theo số ghép box cùng lớp, IoU≥0.5 của scorer gốc, không đại diện tỷ lệ lỗi toàn tập. GT xanh, prediction đỏ; [manifest](report/analysis/figure_manifest.json) ghi nguồn và số đếm.
 
-![Mẫu đúng 1](report/figures/e3_step0200/test_vlcsnap-00200.png)
+![Mẫu đúng 1](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-18-23h10m48s405.png)
 
-`vlcsnap-00200`: TP=2, FP=0, FN=0; khớp đủ hai box.
+`vlcsnap-2025-02-18-23h10m48s405`: TP=3, FP=0, FN=0; khớp đủ box.
 
-![Mẫu đúng 2](report/figures/e3_step0200/test_vlcsnap-2025-02-18-23h13m52s540.png)
+![Mẫu đúng 2](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-19-17h04m47s362.png)
 
-`vlcsnap-2025-02-18-23h13m52s540`: TP=2, FP=0, FN=0; không có box thừa/bỏ sót ở ngưỡng chấm.
+`vlcsnap-2025-02-19-17h04m47s362`: TP=3, FP=0, FN=0; khớp đủ box.
 
-![Mẫu đúng 3](report/figures/e3_step0200/test_vlcsnap-2025-02-18-23h13m55s630.png)
+![Mẫu đúng 3](report/extended/figures/e3_step0300/test_vlcsnap-00200.png)
 
-`vlcsnap-2025-02-18-23h13m55s630`: TP=2, FP=0, FN=0; khớp đủ box.
+`vlcsnap-00200`: TP=2, FP=0, FN=0; khớp đủ box.
 
-![Mẫu lỗi 1](report/figures/e3_step0200/test_vlcsnap-2025-02-18-23h24m36s429.png)
+![Mẫu lỗi 1](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-19-17h08m59s876.png)
 
-`vlcsnap-2025-02-18-23h24m36s429`: TP=1, FP=5, FN=4; nhiều box không ghép được, vừa dự đoán thừa vừa bỏ sót.
+`vlcsnap-2025-02-19-17h08m59s876`: TP=0, FP=3, FN=5; có box thừa hoặc bỏ sót; JSON hợp lệ không bảo đảm định vị đúng.
 
-![Mẫu lỗi 2](report/figures/e3_step0200/test_vlcsnap-2025-02-18-23h30m28s990.png)
+![Mẫu lỗi 2](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m34s484.png)
 
-`vlcsnap-2025-02-18-23h30m28s990`: TP=2, FP=4, FN=5; có box đúng nhưng vẫn bỏ sót phần lớn GT.
+`vlcsnap-2025-02-18-23h24m34s484`: TP=0, FP=3, FN=4; có box thừa hoặc bỏ sót; JSON hợp lệ không bảo đảm định vị đúng.
 
-![Mẫu lỗi 3](report/figures/e3_step0200/test_vlcsnap-2025-02-19-17h03m02s980.png)
+![Mẫu lỗi 3](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m36s429.png)
 
-`vlcsnap-2025-02-19-17h03m02s980`: TP=0, FP=3, FN=6; JSON hợp lệ nhưng không có box đạt ghép lớp/IoU.
+`vlcsnap-2025-02-18-23h24m36s429`: TP=0, FP=2, FN=5; có box thừa hoặc bỏ sót; JSON hợp lệ không bảo đảm định vị đúng.
 
 ### Câu 10 — E4 đổi biến nào và kết luận?
 
-Chỉ đổi train_fraction: 10% so với 100%, nền E3 đã chọn bằng val. Subset train cố định seed42 gồm floor(1422×0.1)=142 ảnh, không thay val/test. Cả hai dùng batch2/accum4, scale1024, LR=2e-4, rank16/alpha32/dropout0.05 và cùng 200 bước thực tế. Lịch LR vẫn dùng horizon300 để khớp 200 bước đầu của E3 đối chứng; không đổi horizon thành 200.
+Chỉ đổi train_fraction:10% so với100%, nền E3 đã chọn bằng val. Subset seed42 gồm floor(1422×0.1)=142 ảnh, không thay val/test. Hai nhánh cùng batch2/accum4, init_scale1024, LR2e-4, rank16/alpha32/dropout0.05 và **300 optimizer steps, horizon300**. Run10% khởi tạo từ model gốc; đối chứng100% tái sử dụng prediction/checkpoint E3 đủ300, không fine-tune tiếp adapter E3. Cả hai dùng bản code có retry AMP cho phần train mới; đây là chính sách xử lý số học có ghi nhận.
 
-Đối chứng 100% tái sử dụng prediction/checkpoint E3 200 bước. Run 10% khởi tạo từ model gốc, không train tiếp adapter E3. E4 cũng chưa đủ 300 bước như đề; đây là phương án có ghi nhận sát hạn, không tự nhận đạt đầy đủ rubric.
-
-10% đạt F1=0.250980, CI95=[0.216511,0.287356]; 100% đạt F1=0.369818, CI95=[0.331691,0.410175]. Giảm dữ liệu làm F1 giảm 0.118837 và FP/ảnh tăng từ 1.286174 lên 1.710611; cả ba lớp đều giảm F1, trong khi JSON hợp lệ vẫn 100%. Các CI không giao nhau, phù hợp với mức giảm rõ ở lần chạy này, nhưng chưa có bootstrap hiệu ghép cặp hoặc nhiều seed để khẳng định tổng quát. Cùng 200 bước mà chỉ 142 ảnh train khiến mẫu bị lặp nhiều hơn; loss train cuối 0.114054 không đồng nghĩa tổng quát hóa tốt. So sánh E4 cô lập fraction ở cùng lịch/budget thực tế; không đại diện cho kết quả đủ 300 bước của đề.
+10% đạt F1=0.302795, CI95=[0.268997,0.337255]; 100% đạt F1=0.433515, CI95=[0.395126,0.475915]. Giảm dữ liệu làm F1 giảm0.130720 và FP/ảnh tăng từ0.890675 lên1.639871. Cả ba lớp giảm F1; JSON hợp lệ10%=100%, 100%=99.3569%, cho thấy định dạng tốt không đồng nghĩa định vị tốt. CI không giao nhưng chưa có bootstrap hiệu ghép cặp/multiple seeds. Cùng số bước trên142 ảnh làm lặp mẫu nhiều hơn; không suy ra loss thấp đồng nghĩa tổng quát hóa tốt. Kết luận chỉ cho subset/seed/budget đã chạy.
 
 #### Nhật ký train bổ sung từ notebook Colab v2
 
 ![Loss và gradient norm tại các bước đã được in](report/figures/training_log_samples.png)
 
-Biểu đồ dùng đúng 21 điểm đã in cho mỗi run (bước 1, 10, 20, …, 200), không nội suy thành log đầy đủ và không làm trơn. E3 loss từ 1.322907 xuống 0.514528; E4 10% từ 1.346753 xuống 0.114054. Tất cả điểm gradient đã trích đều hữu hạn, scale=1024. Loss E4 thấp hơn nhưng F1 test thấp hơn, phù hợp với nguy cơ học lặp tập nhỏ; chưa đủ để tách mọi nguyên nhân của chênh lệch tổng quát hóa.
+**Biểu đồ lịch sử200 bước, không phải log của run300 mới.** Biểu đồ dùng đúng 21 điểm đã in cho mỗi run (bước 1, 10, 20, …, 200), không nội suy thành log đầy đủ và không làm trơn. E3 loss từ 1.322907 xuống 0.514528; E4 10% từ 1.346753 xuống 0.114054. Tất cả điểm gradient đã trích đều hữu hạn, scale=1024. Loss E4 thấp hơn nhưng F1 test thấp hơn, phù hợp với nguy cơ học lặp tập nhỏ; chưa đủ để tách mọi nguyên nhân của chênh lệch tổng quát hóa.
 
 Nguồn: [log trích nguyên văn](report/logs/colab_v2_excerpt.txt), [các điểm train có provenance](report/logs/sampled_training_events.json). Bản v2 xác nhận E3 dừng do lỗi backup ở bước 200; E4 hoàn thành bước 200 dù backup cuối lỗi. Log bổ sung sau lần push nộp đầu tiên, không thay evidence hay khẳng định đã có run300.
 
 ## Nhìn lại
 
-Đã có evidence thật E0–E4, sáu ảnh có chú thích và kiểm chứng sai thang; E1 đạt yêu cầu định dạng/cải thiện F1. Vấn đề chính khi triển khai: tên skip quantization đầy đủ, torchao tùy chọn không tương thích, overflow gradient fp16 ở E3 và lỗi backup Drive. Đã sửa backup để lỗi Drive không làm dừng train; E4 đủ 200 bước dù backup bước cuối lỗi. Bản checkpoint tại thời điểm lỗi E3 chưa lưu optimizer/RNG để resume chính xác.
+Đã có evidence thật E0–E4; E1/E2/E3 và hai nhánh E4 đủ300 bước. Vấn đề triển khai gồm skip quantization đầy đủ, torchao không tương thích, gradient fp16 không hữu hạn và backup Drive mất dữ liệu dù kiểm tra cùng phiên từng thành công. Đã bổ sung checkpoint optimizer/RNG/batch cursor và retry gradient có giới hạn, kiểm tra bằng fixture CPU rồi người dùng chạy T4 thực tế. Không cam kết ZIP Drive bền vững chỉ từ xác minh trong một phiên.
 
-Giới hạn chính của bài nộp là E3/E4 chỉ 200 bước, E3 đổi AMP scale so với E1/E2, một seed, CI bootstrap theo ảnh và chưa đếm riêng toàn bộ tham số kiến trúc trên base model. Không coi checkpoint 200 bước là đủ 300. Test mẫu REPORT của đề còn yêu cầu marker chưa điền, trái với checker của báo cáo hoàn chỉnh; ghi nhận lỗi này, không sửa test gốc hoặc chèn marker giả để lách kiểm tra.
+Giới hạn còn lại: một seed, AMP scale E1/E2 khác E3/E4, thiếu model revision, CI bootstrap theo ảnh; hình minh họa và kiểm chứng sai thang đã cập nhật từ prediction300; biểu đồ train cũ vẫn được ghi rõ là lịch sử200. E5 chưa làm. Test mẫu REPORT yêu cầu marker chưa điền trái với checker báo cáo hoàn chỉnh; không sửa test gốc hoặc chèn marker giả. Kết quả kiểm tra hiện hành ghi ở [verification.json](report/analysis/verification.json).

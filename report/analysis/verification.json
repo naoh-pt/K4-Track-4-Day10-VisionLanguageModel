@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-14",
+  "date": "2026-10-16",
   "original_tests_command": "python -m pytest -q",
   "original_tests": {
     "passed": 67,
@@ -9,8 +9,19 @@
     "reason": "Test requires the unfilled REPORT marker; check_submission requires the completed report without that marker. Original tests were not edited."
   },
   "submission_checker_command": "python -X utf8 scripts/check_submission.py",
-  "submission_checker": {"fail": 0, "warn": 0},
+  "submission_checker": {
+    "fail": 0,
+    "warn": 0
+  },
   "dataset_version": "d10-21e4070301",
-  "actual_training_steps": {"E1": 300, "E2": 300, "E3": 200, "E4_0.1": 200, "E4_1.0": 200},
-  "important_limitation": "E3/E4 do not meet the assignment's 300-step setup; checker success does not waive this deviation."
+  "actual_training_steps": {
+    "E1": 300,
+    "E2": 300,
+    "E3": 300,
+    "E4_0.1": 300,
+    "E4_1.0": 300
+  },
+  "important_limitation": "One seed; different AMP scales between E1/E2 and E3/E4; null model revision. Figures and coordinate trap updated from real E3 step300 predictions; old training plot is explicitly historical.",
+  "source": "extended300_results (1).zip and lab_day10_continue300_(2).ipynb supplied by student",
+  "e4_recovery": "v1 Drive archive read as zero bytes in next session; v2 retrained from base and evaluated. Unique rescue ZIP verified only within the current Colab session."
 }

@@ -1,0 +1,33 @@
+{
+  "trainable_params": 148426752,
+  "peak_vram_gb": 7.750030517578125,
+  "train_minutes": 58.9035312887,
+  "dataset_version": "d10-21e4070301",
+  "steps": 300,
+  "smoke": false,
+  "fingerprint": "ce57cbf0bf5e75ea67ea83c1565d130a16d5d79574607f3d23d542e5329c0f38",
+  "config": {
+    "name": "E3",
+    "description": "E2 + LoRA trên các khối attention và MLP của ViT.",
+    "model_id": "Qwen/Qwen3-VL-4B-Instruct",
+    "quantization": "nf4-4bit",
+    "lora": {
+      "r": 16,
+      "alpha": 32,
+      "dropout": 0.05,
+      "targets": "llm+vit"
+    },
+    "train_projector": true,
+    "lr": 0.0002,
+    "batch_size": 2,
+    "grad_accum": 4,
+    "max_steps": 300,
+    "seed": 42,
+    "max_new_tokens": 256,
+    "train_fraction": 0.1,
+    "amp_init_scale": 1024.0
+  },
+  "model_revision": null,
+  "resume_state_format": 1,
+  "resumed_from": null
+}

@@ -12,3 +12,8 @@ adapter*/
 .ipynb_checkpoints/
 .pytest_cache/
 .DS_Store
+/extended300*.zip
+/architecture.json
+/lab_day10_v*.ipynb
+/lab_day10_continue300 (*).ipynb
+/lab_day10_continue300_(*).ipynb

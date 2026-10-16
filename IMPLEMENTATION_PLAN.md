@@ -60,5 +60,14 @@
 - [x] Backup ZIP rolling được kiểm checksum trước thay latest của đúng run mới; lỗi Drive không dừng train, giữ local để cứu.
 - [x] Kiểm tra CPU nhỏ: batch order giống DataLoader cũ; dropout/optimizer/LR/scaler/tensor cuối khớp khi pause/resume; ZIP round-trip/checksum và rejection; đếm logical Params4bit shape.
 - [x] `lab_day10_continue300.ipynb`, `COLAB_CONTINUE300.md`, bundle mới; kết quả mới ở report/extended, chưa đổi evidence/REPORT đã nộp.
-- [ ] Người dùng chạy smoke pause4→resume8 trên T4; xác nhận architecture và state restore GPU trước full.
-- [ ] E3 đủ300, val chọn nền E4, E4 đủ300, test mới, cập nhật báo cáo/ảnh và kiểm tra trước nộp lại.
+- [x] Người dùng chạy smoke pause4→resume8 trên T4; đã ghi architecture và kiểm tra state restore GPU.
+- [x] E3 đủ300, val chọn nền E4, E4 v2 đủ300 và test mới; báo cáo đã cập nhật, hình mới còn chờ xuất.
+
+# Cập nhật 16/10 — kết quả sau gia hạn
+
+- [x] E3 và E4 v2 đủ300 bước, test đủ311 ảnh; nhập JSON thật, chọn nền E3 bằng val.
+- [x] Giữ báo cáo/evidence200 tại report/history/step0200; cập nhật evidence chính và REPORT.
+- [x] Retry AMP có giới hạn, phát lại batch/RNG; kiểm tra fixture CPU, không tải model local.
+- [x] Chạy lại toàn bộ test gốc:67 passed,1 skipped,1 failed do marker REPORT; checker0 FAIL0 WARN.
+- [x] Colab CPU: xuất sáu hình/kiểm chứng tọa độ từ prediction E3 300; nhập ZIP và xem mẫu đúng/lỗi.
+- [ ] Xác minh bản rescue E4 qua phiên/thiết bị khác; kiểm tra lại cấu trúc nộp và commit/push bản cuối.

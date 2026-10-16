@@ -1,0 +1,15 @@
+{
+  "groups": {
+    "visual_backbone": 306242560,
+    "merger": 27271680,
+    "deepstack_mergers": 81833472,
+    "language_model": 4022468096,
+    "lm_head": 0,
+    "other": 0
+  },
+  "total_unique_parameters": 4437815808,
+  "projector_total": 109105152,
+  "visual_total": 415347712,
+  "method": "named_parameters removes shared duplicates; Params4bit uses original quant_state.shape",
+  "model_revision": null
+}
