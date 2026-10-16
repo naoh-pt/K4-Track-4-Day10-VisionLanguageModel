@@ -7,7 +7,7 @@
       "fp": 0,
       "fn": 0,
       "valid_json": true,
-      "figure": "report/extended/figures/e3_step0300/test_vlcsnap-2025-02-18-23h10m48s405.png",
+      "figure": "report/figures/e3_step0300/test_vlcsnap-2025-02-18-23h10m48s405.png",
       "caption": "GT xanh, dự đoán đỏ; TP=3, FP=0, FN=0. Đúng toàn bộ box."
     },
     {
@@ -16,7 +16,7 @@
       "fp": 0,
       "fn": 0,
       "valid_json": true,
-      "figure": "report/extended/figures/e3_step0300/test_vlcsnap-2025-02-19-17h04m47s362.png",
+      "figure": "report/figures/e3_step0300/test_vlcsnap-2025-02-19-17h04m47s362.png",
       "caption": "GT xanh, dự đoán đỏ; TP=3, FP=0, FN=0. Đúng toàn bộ box."
     },
     {
@@ -25,7 +25,7 @@
       "fp": 0,
       "fn": 0,
       "valid_json": true,
-      "figure": "report/extended/figures/e3_step0300/test_vlcsnap-00200.png",
+      "figure": "report/figures/e3_step0300/test_vlcsnap-00200.png",
       "caption": "GT xanh, dự đoán đỏ; TP=2, FP=0, FN=0. Đúng toàn bộ box."
     },
     {
@@ -34,7 +34,7 @@
       "fp": 3,
       "fn": 5,
       "valid_json": true,
-      "figure": "report/extended/figures/e3_step0300/test_vlcsnap-2025-02-19-17h08m59s876.png",
+      "figure": "report/figures/e3_step0300/test_vlcsnap-2025-02-19-17h08m59s876.png",
       "caption": "GT xanh, dự đoán đỏ; TP=0, FP=3, FN=5. Còn box thừa hoặc bỏ sót."
     },
     {
@@ -43,7 +43,7 @@
       "fp": 3,
       "fn": 4,
       "valid_json": true,
-      "figure": "report/extended/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m34s484.png",
+      "figure": "report/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m34s484.png",
       "caption": "GT xanh, dự đoán đỏ; TP=0, FP=3, FN=4. Còn box thừa hoặc bỏ sót."
     },
     {
@@ -52,7 +52,7 @@
       "fp": 2,
       "fn": 5,
       "valid_json": true,
-      "figure": "report/extended/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m36s429.png",
+      "figure": "report/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m36s429.png",
       "caption": "GT xanh, dự đoán đỏ; TP=0, FP=2, FN=5. Còn box thừa hoặc bỏ sót."
     }
   ]

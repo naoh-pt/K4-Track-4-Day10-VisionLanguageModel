@@ -2,11 +2,11 @@
 
 ## Bài nộp — Phan Trọng Hoàn
 
-Notebook xem kết quả cuối bằng CPU: [lab_day10_results300.ipynb](lab_day10_results300.ipynb). Các cell đọc evidence thật; không giả output hoặc tải model local. Notebook gốc và workflow huấn luyện vẫn được giữ riêng.
+Notebook xem kết quả cuối bằng CPU: [lab_day10.ipynb](lab_day10.ipynb). Các cell đọc evidence thật; không giả output hoặc tải model local. Notebook gốc và workflow huấn luyện vẫn được giữ riêng.
 
-Đã hoàn thành E3/E4 đủ300 bước trên Colab T4: E3 test F1=0.433515; E4 dữ liệu10% F1=0.302795. Evidence chính đã cập nhật; [bản200 bước](report/history/step0200/REPORT.md) được giữ riêng. [Notebook tiếp tục](lab_day10_continue300.ipynb), [hướng dẫn resume](COLAB_CONTINUE300.md) và [ghi nhận sửa AMP](COLAB_AMP_RECOVERY.md).
+Đã hoàn thành E3/E4 đủ300 bước trên Colab T4: E3 test F1=0.433515; E4 dữ liệu10% F1=0.302795. Evidence chính đã cập nhật; [bản200 bước](https://github.com/naoh-pt/K4-Track-4-Day10-VisionLanguageModel/blob/9e211e9/REPORT.md) được giữ riêng. [Notebook tiếp tục](lab_day10_continue300.ipynb), [hướng dẫn resume](COLAB_CONTINUE300.md) và [ghi nhận sửa AMP](COLAB_AMP_RECOVERY.md).
 
-Đọc [REPORT.md](REPORT.md) để xem kết quả và giới hạn, [evidence](report/evidence) để đối chiếu JSON scorer, [ảnh minh họa300 bước](report/extended/figures/e3_step0300) và [log Colab](report/logs). Code cá nhân nằm trong `src/`; notebook chính là [lab_day10.ipynb](lab_day10.ipynb), hướng dẫn chạy ở [COLAB_RUN_GUIDE.md](COLAB_RUN_GUIDE.md).
+Đọc [REPORT.md](REPORT.md) để xem kết quả và giới hạn, [evidence](report/evidence) để đối chiếu JSON scorer, [ảnh minh họa300 bước](report/figures/e3_step0300) và [log Colab](report/logs). Code cá nhân nằm trong `src/`; notebook chính là [lab_day10.ipynb](lab_day10.ipynb), hướng dẫn chạy ở [COLAB_RUN_GUIDE.md](COLAB_RUN_GUIDE.md).
 
 E1/E2/E3 và E4 đều train300 bước; E0–E4 có evidence thật, E5 chưa làm. Hình minh họa và kiểm chứng tọa độ đã cập nhật từ prediction300; biểu đồ train lịch sử200 được chú thích riêng. Test gốc có xung đột marker REPORT với checker; xem [biên bản kiểm tra](report/analysis/verification.json). Không có dataset, secrets hoặc trọng số trong Git. Notebook tải về/debug giữ nguyên ở local; output cũ không được coi là lần chạy lại notebook đã dọn. ZIP E4 v1 trên Drive từng thành0 byte, nên E4 được train lại v2; metadata/backup thành công cùng phiên không bảo đảm lưu trữ lâu dài.
 

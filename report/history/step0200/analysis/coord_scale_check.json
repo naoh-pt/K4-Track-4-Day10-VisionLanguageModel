@@ -1,9 +1,0 @@
-{
-  "dataset_version": "d10-21e4070301",
-  "split": "test",
-  "prediction": "work/predictions/e3_step0200_test.jsonl",
-  "description": "Cùng prediction E3, không suy luận/train lại; cố ý chấm sai thang để phân tích lỗi.",
-  "correct_norm1000_f1": 0.36981757877280264,
-  "wrong_pixel_f1": 0.0,
-  "parse_valid_rate": 1.0
-}

@@ -7,7 +7,7 @@ E0 là model gốc; E1/E2/E3 khởi tạo độc lập từ model gốc và đ�
 
 E1/E2 dùng AMP scale mặc định65536; E3/E4 dùng init_scale1024 sau lỗi gradient fp16. E3 từng dừng ở216 dù loss hữu hạn; code mới retry có giới hạn, phát lại batch/RNG và giảm scale khi gradient không hữu hạn, không cập nhật optimizer/LR cho lần thử lỗi. Log thành công không chứng minh retry đã được kích hoạt ở216; không tự nhận overflow đã tái hiện. Scale khác nhau vẫn là giới hạn khi diễn giải E2/E3.
 
-Run E4 v1 đủ300 từng báo backup thành công nhưng ZIP Drive trở thành0 byte ở phiên sau. Không dùng metadata thay trọng số: E4 được train lại độc lập thành v2 và chấm test thật. ZIP rescue v2 đã được người dùng sao chép, kiểm tra kích thước/SHA256 và cấu trúc ZIP trong phiên; chưa coi đó là bảo đảm lưu trữ lâu dài. `model_revision=null` là thiếu provenance phiên bản model. [Bản báo cáo200 bước](report/history/step0200/REPORT.md) và evidence cũ được giữ riêng, không trộn với bảng mới.
+Run E4 v1 đủ300 từng báo backup thành công nhưng ZIP Drive trở thành0 byte ở phiên sau. Không dùng metadata thay trọng số: E4 được train lại độc lập thành v2 và chấm test thật. ZIP rescue v2 đã được người dùng sao chép, kiểm tra kích thước/SHA256 và cấu trúc ZIP trong phiên; chưa coi đó là bảo đảm lưu trữ lâu dài. `model_revision=null` là thiếu provenance phiên bản model. [Bản báo cáo200 bước](https://github.com/naoh-pt/K4-Track-4-Day10-VisionLanguageModel/blob/9e211e9/REPORT.md) và evidence cũ được giữ riêng, không trộn với bảng mới.
 
 ## Bảng tổng hợp test (311 ảnh)
 
@@ -28,7 +28,7 @@ Val dùng gỡ lỗi và chọn nền E4: E1 F1=0.207245; E2=0.300172; E3 300 b�
 
 ### Câu 1 — Kiến trúc: ViT, projector và LLM có bao nhiêu tham số, E1/E2/E3 cập nhật khối nào?
 
-Luồng xử lý là ViT trích đặc trưng ảnh → merger và các DeepStack merger đưa đặc trưng vào không gian ngôn ngữ → LLM sinh JSON. [Phép đếm thực tế trên Colab](report/extended/analysis/architecture.json) cho tổng4,437,815,808 tham số duy nhất: backbone ViT306,242,560; merger27,271,680; DeepStack mergers81,833,472; language_model4,022,468,096. Projector tổng109,105,152; toàn visual415,347,712. Params4bit được đếm bằng shape gốc trước khi pack uint8. `lm_head:0` là số tham số riêng được gán vào nhóm này khi loại bỏ tham số dùng chung, không phải chứng cứ rằng model không có head; chưa ghi kiểm chứng alias riêng.
+Luồng xử lý là ViT trích đặc trưng ảnh → merger và các DeepStack merger đưa đặc trưng vào không gian ngôn ngữ → LLM sinh JSON. [Phép đếm thực tế trên Colab](report/analysis/architecture.json) cho tổng4,437,815,808 tham số duy nhất: backbone ViT306,242,560; merger27,271,680; DeepStack mergers81,833,472; language_model4,022,468,096. Projector tổng109,105,152; toàn visual415,347,712. Params4bit được đếm bằng shape gốc trước khi pack uint8. `lm_head:0` là số tham số riêng được gán vào nhóm này khi loại bỏ tham số dùng chung, không phải chứng cứ rằng model không có head; chưa ghi kiểm chứng alias riêng.
 
 Số trainable thực đo của tôi: E1=33,030,144; E2=142,135,296; E3=148,426,752. E2 mở thêm đúng 109,105,152 tham số projector; E3 thêm 6,291,456 tham số LoRA ViT so với E2. E1 chỉ LoRA LLM (252 module), E2 thêm full projector `visual.merger` và `visual.deepstack_merger_list`; E3 thêm 96 module attention/MLP ViT, tổng 348 module LoRA. Backbone và lm_head còn lại đóng băng.
 
@@ -86,27 +86,27 @@ Pothole có F1 thấp nhất ở cả E1/E2/E3. E3 300 bước test: pothole TP=
 
 Box nhỏ, tương phản thấp và sự khác biệt hình dạng có thể là nguyên nhân, nhưng chưa có thống kê lỗi theo kích thước. Sáu hình sau được xuất từ prediction E3 **300 bước**: ba ảnh khớp đủ box và ba ảnh có nhiều FP/FN. Chọn mẫu theo số ghép box cùng lớp, IoU≥0.5 của scorer gốc, không đại diện tỷ lệ lỗi toàn tập. GT xanh, prediction đỏ; [manifest](report/analysis/figure_manifest.json) ghi nguồn và số đếm.
 
-![Mẫu đúng 1](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-18-23h10m48s405.png)
+![Mẫu đúng 1](report/figures/e3_step0300/test_vlcsnap-2025-02-18-23h10m48s405.png)
 
 `vlcsnap-2025-02-18-23h10m48s405`: TP=3, FP=0, FN=0; khớp đủ box.
 
-![Mẫu đúng 2](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-19-17h04m47s362.png)
+![Mẫu đúng 2](report/figures/e3_step0300/test_vlcsnap-2025-02-19-17h04m47s362.png)
 
 `vlcsnap-2025-02-19-17h04m47s362`: TP=3, FP=0, FN=0; khớp đủ box.
 
-![Mẫu đúng 3](report/extended/figures/e3_step0300/test_vlcsnap-00200.png)
+![Mẫu đúng 3](report/figures/e3_step0300/test_vlcsnap-00200.png)
 
 `vlcsnap-00200`: TP=2, FP=0, FN=0; khớp đủ box.
 
-![Mẫu lỗi 1](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-19-17h08m59s876.png)
+![Mẫu lỗi 1](report/figures/e3_step0300/test_vlcsnap-2025-02-19-17h08m59s876.png)
 
 `vlcsnap-2025-02-19-17h08m59s876`: TP=0, FP=3, FN=5; có box thừa hoặc bỏ sót; JSON hợp lệ không bảo đảm định vị đúng.
 
-![Mẫu lỗi 2](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m34s484.png)
+![Mẫu lỗi 2](report/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m34s484.png)
 
 `vlcsnap-2025-02-18-23h24m34s484`: TP=0, FP=3, FN=4; có box thừa hoặc bỏ sót; JSON hợp lệ không bảo đảm định vị đúng.
 
-![Mẫu lỗi 3](report/extended/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m36s429.png)
+![Mẫu lỗi 3](report/figures/e3_step0300/test_vlcsnap-2025-02-18-23h24m36s429.png)
 
 `vlcsnap-2025-02-18-23h24m36s429`: TP=0, FP=2, FN=5; có box thừa hoặc bỏ sót; JSON hợp lệ không bảo đảm định vị đúng.
 
