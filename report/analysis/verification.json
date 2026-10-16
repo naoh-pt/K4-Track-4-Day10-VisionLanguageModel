@@ -21,7 +21,7 @@
     "E4_0.1": 300,
     "E4_1.0": 300
   },
-  "important_limitation": "One seed; different AMP scales between E1/E2 and E3/E4; null model revision. Figures and coordinate trap updated from real E3 step300 predictions; old training plot is explicitly historical.",
+  "important_limitation": "One seed; different AMP scales between E1/E2 and E3/E4; null model revision. Figures and coordinate trap updated from real E3 step300 predictions.",
   "source": "extended300_results (1).zip and lab_day10_continue300_(2).ipynb supplied by student",
   "e4_recovery": "v1 Drive archive read as zero bytes in next session; v2 retrained from base and evaluated. Unique rescue ZIP verified only within the current Colab session."
 }

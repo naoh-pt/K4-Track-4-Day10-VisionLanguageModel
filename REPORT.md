@@ -116,16 +116,8 @@ Chỉ đổi train_fraction:10% so với100%, nền E3 đã chọn bằng val. S
 
 10% đạt F1=0.302795, CI95=[0.268997,0.337255]; 100% đạt F1=0.433515, CI95=[0.395126,0.475915]. Giảm dữ liệu làm F1 giảm0.130720 và FP/ảnh tăng từ0.890675 lên1.639871. Cả ba lớp giảm F1; JSON hợp lệ10%=100%, 100%=99.3569%, cho thấy định dạng tốt không đồng nghĩa định vị tốt. CI không giao nhưng chưa có bootstrap hiệu ghép cặp/multiple seeds. Cùng số bước trên142 ảnh làm lặp mẫu nhiều hơn; không suy ra loss thấp đồng nghĩa tổng quát hóa tốt. Kết luận chỉ cho subset/seed/budget đã chạy.
 
-#### Nhật ký train bổ sung từ notebook Colab v2
-
-![Loss và gradient norm tại các bước đã được in](report/figures/training_log_samples.png)
-
-**Biểu đồ lịch sử200 bước, không phải log của run300 mới.** Biểu đồ dùng đúng 21 điểm đã in cho mỗi run (bước 1, 10, 20, …, 200), không nội suy thành log đầy đủ và không làm trơn. E3 loss từ 1.322907 xuống 0.514528; E4 10% từ 1.346753 xuống 0.114054. Tất cả điểm gradient đã trích đều hữu hạn, scale=1024. Loss E4 thấp hơn nhưng F1 test thấp hơn, phù hợp với nguy cơ học lặp tập nhỏ; chưa đủ để tách mọi nguyên nhân của chênh lệch tổng quát hóa.
-
-Nguồn: [log trích nguyên văn](report/logs/colab_v2_excerpt.txt), [các điểm train có provenance](report/logs/sampled_training_events.json). Bản v2 xác nhận E3 dừng do lỗi backup ở bước 200; E4 hoàn thành bước 200 dù backup cuối lỗi. Log bổ sung sau lần push nộp đầu tiên, không thay evidence hay khẳng định đã có run300.
-
 ## Nhìn lại
 
 Đã có evidence thật E0–E4; E1/E2/E3 và hai nhánh E4 đủ300 bước. Vấn đề triển khai gồm skip quantization đầy đủ, torchao không tương thích, gradient fp16 không hữu hạn và backup Drive mất dữ liệu dù kiểm tra cùng phiên từng thành công. Đã bổ sung checkpoint optimizer/RNG/batch cursor và retry gradient có giới hạn, kiểm tra bằng fixture CPU rồi người dùng chạy T4 thực tế. Không cam kết ZIP Drive bền vững chỉ từ xác minh trong một phiên.
 
-Giới hạn còn lại: một seed, AMP scale E1/E2 khác E3/E4, thiếu model revision, CI bootstrap theo ảnh; hình minh họa và kiểm chứng sai thang đã cập nhật từ prediction300; biểu đồ train cũ vẫn được ghi rõ là lịch sử200. E5 chưa làm. Test mẫu REPORT yêu cầu marker chưa điền trái với checker báo cáo hoàn chỉnh; không sửa test gốc hoặc chèn marker giả. Kết quả kiểm tra hiện hành ghi ở [verification.json](report/analysis/verification.json).
+Giới hạn còn lại: một seed, AMP scale E1/E2 khác E3/E4, thiếu model revision và CI bootstrap theo ảnh. Hình minh họa và kiểm chứng sai thang dùng prediction300. E5 chưa làm. Test mẫu REPORT yêu cầu marker chưa điền trái với checker báo cáo hoàn chỉnh; không sửa test gốc hoặc chèn marker giả. Kết quả kiểm tra hiện hành ghi ở [verification.json](report/analysis/verification.json).
