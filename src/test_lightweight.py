@@ -49,6 +49,16 @@ class LightweightTests(unittest.TestCase):
                 with ZipFile(output) as z:
                     self.assertEqual(sum(n.endswith(".png") for n in z.namelist()), 6)
                     self.assertTrue(all(n.startswith("report/") for n in z.namelist()))
+                Path("report/extended/validation").mkdir(parents=True)
+                Path("work/validation").mkdir(parents=True)
+                Path("report/extended/validation/e3.json").write_text('{"steps":300}')
+                Path("work/validation/e3.json").write_text('{"steps":200}')
+                extended = export("pred.jsonl", output="work/extended.zip",
+                                  report_root="report/extended", figure_tag="e3_step0300")
+                self.assertEqual(json.loads(Path("report/extended/validation/e3.json").read_text()), {"steps": 300})
+                with ZipFile(extended) as z:
+                    self.assertTrue(all(n.startswith("report/extended/") for n in z.namelist()))
+                    self.assertEqual(sum("figures/e3_step0300/" in n for n in z.namelist()), 6)
             finally:
                 os.chdir(previous)
 

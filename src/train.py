@@ -13,6 +13,7 @@ from .modeling import load_base, require_colab_gpu, parameter_report
 from .resume import BatchStream, training_state, restore_training_state
 from .setups import apply_setup, is_projector
 from .sft import SFTDataset, collate_encoded, inspect_encoding
+from .amp_retry import backward_with_retry
 
 
 def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smoke_dir=None,
@@ -119,32 +120,36 @@ def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smok
                       if resume_from else "train_log.jsonl")
     print("Train log:", log_path, flush=True)
     optimizer.zero_grad(set_to_none=True)
+    batch = loss = None
     with log_path.open("x", encoding="utf-8") as log:
         for step in range(start_step+1, steps+1):
-            loss_sum = 0.0
-            for _ in range(cfg["grad_accum"]):
-                batch = collate_encoded([dataset[i] for i in stream.next_indices()],
-                                        processor.tokenizer.pad_token_id)
-                batch = {k: v.to("cuda:0") for k, v in batch.items()}
-                with torch.autocast("cuda", dtype=torch.float16):
-                    loss = model(**batch).loss
-                if not torch.isfinite(loss):
-                    raise FloatingPointError(f"Loss không hữu hạn ở step {step}.")
-                loss_sum += float(loss.detach()) / cfg["grad_accum"]
-                scaler.scale(loss / cfg["grad_accum"]).backward()
-            scaler.unscale_(optimizer)
-            try:
-                norm = torch.nn.utils.clip_grad_norm_(params, 1.0, error_if_nonfinite=True)
-            except RuntimeError:
-                bad = [n for n, p in model.named_parameters()
-                       if p.requires_grad and p.grad is not None and not torch.isfinite(p.grad).all()]
-                diagnostic = {"step": step, "loss": loss_sum, "amp_scale": scaler.get_scale(),
-                              "nonfinite_gradient_params": bad[:20], "nonfinite_param_count": len(bad)}
-                write_json(out / "failure.json", diagnostic)
-                print(diagnostic, flush=True)
-                raise FloatingPointError(f"Gradient không hữu hạn ở step {step}; xem failure.json.")
-            if not torch.isfinite(norm):
-                raise FloatingPointError(f"Gradient không hữu hạn ở step {step}; dừng và gửi log.")
+            def compute_backward():
+                nonlocal batch, loss
+                loss_sum = 0.0
+                for _ in range(cfg["grad_accum"]):
+                    batch = collate_encoded([dataset[i] for i in stream.next_indices()],
+                                            processor.tokenizer.pad_token_id)
+                    batch = {k: v.to("cuda:0") for k, v in batch.items()}
+                    with torch.autocast("cuda", dtype=torch.float16):
+                        loss = model(**batch).loss
+                    if not torch.isfinite(loss):
+                        raise FloatingPointError(f"Loss không hữu hạn ở step {step}.")
+                    loss_sum += float(loss.detach()) / cfg["grad_accum"]
+                    scaler.scale(loss / cfg["grad_accum"]).backward()
+                return loss_sum
+
+            def on_overflow(event):
+                bad = [names[i] for i in event.pop("nonfinite_param_indices")]
+                event.update(step=step, event="amp_overflow_retry",
+                             nonfinite_gradient_params=bad[:20], nonfinite_param_count=len(bad))
+                with (out / "amp_retry.jsonl").open("a", encoding="utf-8") as retry_log:
+                    retry_log.write(json.dumps(event) + "\n")
+                print(event, flush=True)
+                if not event["retry"]:
+                    write_json(out / "failure.json", event)
+
+            loss_sum, norm, retries = backward_with_retry(
+                compute_backward, optimizer, scaler, stream, params, on_overflow)
             if smoke and step == 1:
                 absent = [n for n, p in model.named_parameters() if p.requires_grad and p.grad is None]
                 assert not absent, f"Tham số trainable không có gradient: {absent[:10]}"
@@ -153,7 +158,8 @@ def train(cfg, data_dir, out, smoke=False, smoke_steps=2, backup_root=None, smok
             scheduler.step()
             optimizer.zero_grad(set_to_none=True)
             event = {"step": step, "loss": loss_sum, "grad_norm": float(norm),
-                     "lr": optimizer.param_groups[0]["lr"], "amp_scale": scaler.get_scale()}
+                     "lr": optimizer.param_groups[0]["lr"], "amp_scale": scaler.get_scale(),
+                     "amp_retries": retries}
             log.write(json.dumps(event) + "\n")
             log.flush()
             if step == 1 or step % 10 == 0 or step == steps:
