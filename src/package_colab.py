@@ -14,10 +14,8 @@ def main():
         files.extend((root / directory).rglob(f"*{suffix}"))
     files.extend(p for p in (root / "report").rglob("*") if p.is_file() and p.suffix in {".json", ".png", ".txt"})
     files.extend(root / name for name in ("README.md", "GUIDE.md", "RUBRIC.md", "REPORT.md",
-                 "IMPLEMENTATION_PLAN.md", "COLAB_RUN_GUIDE.md", "requirements-colab.txt",
+                 "requirements-colab.txt",
                  "pytest.ini", ".gitignore", "lab_day10.ipynb"))
-    files.extend(root / name for name in ("lab_day10_continue300.ipynb", "COLAB_CONTINUE300.md")
-                 if (root / name).exists())
     destination = (root / args.out).resolve()
     if not destination.is_relative_to((root / "work").resolve()):
         raise ValueError("Bundle phải lưu trong work/ để không vô tình commit ZIP.")
